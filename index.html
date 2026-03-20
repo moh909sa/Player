@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CinePlay</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Bebas+Neue&display=swap');
+  :root{--bg:#080c10;--surface:#0d1117;--card:#111820;--border:#1e2a38;--accent:#e8a838;--accent2:#c47820;--text:#e8eaf0;--muted:#6b7a8d;--success:#2ecc71;--danger:#e74c3c;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min-height:100vh;}
+  header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:rgba(8,12,16,.97);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);letter-spacing:3px;}
+  .logo span{color:var(--text);opacity:.3;}
+  main{max-width:900px;margin:0 auto;padding:20px 14px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+  .card-title{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--accent);margin-bottom:14px;font-weight:700;}
+  textarea,input[type=text],input[type=password],select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:13px;outline:none;transition:border-color .2s;width:100%;}
+  textarea{resize:vertical;min-height:95px;direction:ltr;font-size:11px;line-height:1.6;font-family:monospace;}
+  input[type=text],input[type=password]{direction:ltr;}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+  input::placeholder,textarea::placeholder{color:var(--muted);font-size:12px;}
+  .btn{padding:11px 18px;border-radius:8px;border:none;font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;justify-content:center;}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;width:100%;margin-top:10px;}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(232,168,56,.3);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-sm{padding:7px 12px;font-size:12px;width:auto;margin-top:0;}
+
+/* Player */
+#playerBox{display:none;border-radius:12px;overflow:hidden;border:1px solid var(–border);margin-bottom:16px;background:#000;position:relative;}
+#playerBox.show{display:block;}
+#playerBox iframe{width:100%;height:500px;border:none;display:block;}
+
+/* Loading overlay */
+#loadingOverlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:10;}
+#loadingOverlay.show{display:flex;}
+.big-spinner{width:40px;height:40px;border:3px solid var(–accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Status */
+.status{padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px;display:none;align-items:center;gap:8px;}
+.status.show{display:flex;}
+.loading{background:rgba(232,168,56,.08);color:var(–accent);border:1px solid rgba(232,168,56,.2);}
+.error{background:rgba(231,76,60,.08);color:var(–danger);border:1px solid rgba(231,76,60,.2);}
+.success{background:rgba(46,204,113,.08);color:var(–success);border:1px solid rgba(46,204,113,.2);}
+.spinner{width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+
+/* Subs */
+#subCard{display:none;}
+#subCard.show{display:block;}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.sub-list{display:grid;gap:7px;max-height:260px;overflow-y:auto;margin-top:12px;}
+.sub-list::-webkit-scrollbar{width:4px;}
+.sub-list::-webkit-scrollbar-thumb{background:var(–border);border-radius:4px;}
+.sub-item{background:var(–surface);border:1px solid var(–border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;transition:border-color .2s;}
+.sub-item:hover{border-color:rgba(232,168,56,.4);}
+.sub-item.done{border-color:var(–success);}
+.sname{font-size:12px;direction:ltr;text-align:left;flex:1;}
+.smeta{font-size:11px;color:var(–muted);direction:ltr;}
+.upload-row{border-top:1px solid var(–border);margin-top:14px;padding-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.upload-btn{background:var(–surface);border:1px dashed var(–border);border-radius:7px;padding:7px 12px;color:var(–muted);font-size:12px;cursor:pointer;transition:all .2s;font-family:‘Tajawal’,sans-serif;}
+.upload-btn:hover{border-color:var(–accent);color:var(–accent);}
+.info{background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.12);border-radius:10px;padding:12px 16px;font-size:12px;color:var(–muted);line-height:1.9;margin-bottom:16px;}
+.info strong{color:var(–accent);}
+code{background:rgba(232,168,56,.1);color:var(–accent);padding:1px 5px;border-radius:3px;font-size:11px;direction:ltr;display:inline-block;}
+
+/* Debug */
+#debugBox{background:rgba(0,0,0,.5);border:1px solid var(–border);border-radius:8px;padding:10px 14px;font-size:11px;color:var(–muted);font-family:monospace;margin-top:10px;direction:ltr;display:none;max-height:120px;overflow-y:auto;}
+#debugBox.show{display:block;}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="logo">CINE<span>PLAY</span></div>
+  <div style="margin-right:auto;font-size:12px;color:var(--muted)">v3 — Webtor + OpenSubtitles</div>
+</header>
+<main>
+
+<div class="info">
+  <strong>📋 كيف تستخدم:</strong><br>
+  ١. افتح Webtor ← اضغط <strong>Stream</strong> على الفيلم<br>
+  ٢. انقر يمين على الصفحة ← <strong>View Page Source</strong><br>
+  ٣. ابحث عن <code>magnet:</code> ← انسخ كل الكود من <code>&lt;video</code> حتى <code>&lt;/script&gt;</code><br>
+  ٤. الصق أدناه واضغط <strong>▶ تشغيل</strong>
+</div>
+
+<div class="card">
+  <div class="card-title">① كود Webtor</div>
+  <textarea id="code" placeholder='<video controls src="magnet:?xt=urn:btih:..." data-path="/.../.mkv"></video>
+<script src="https://cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js" charset="utf-8" async></script>'></textarea>
+  <button class="btn btn-primary" id="playBtn" onclick="play()">▶ تشغيل</button>
+  <div id="eStatus" class="status"></div>
+  <div id="debugBox"></div>
+</div>
+
+<!-- Player via iframe sandbox -->
+
+<div id="playerBox">
+  <div id="loadingOverlay" class="show">
+    <div class="big-spinner"></div>
+    <div style="color:var(--muted);font-size:13px">جاري تحميل الفيديو عبر Webtor...</div>
+  </div>
+  <iframe id="playerFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation" allowfullscreen></iframe>
+</div>
+
+<!-- Subtitles -->
+
+<div class="card" id="subCard">
+  <div class="card-title">② ترجمة OpenSubtitles</div>
+  <div class="row">
+    <input type="password" id="apiKey" placeholder="API Key من opensubtitles.com (مجاني)" style="flex:1">
+    <button class="btn btn-secondary btn-sm" onclick="saveKey()">💾 حفظ</button>
+    <span id="savedMsg" style="color:var(--success);font-size:12px;display:none;align-self:center">✓ محفوظ</span>
+  </div>
+  <div class="row">
+    <input type="text" id="subQ" placeholder="اسم الفيلم..." style="flex:1;direction:rtl">
+    <select id="langSel" style="width:auto;direction:rtl">
+      <option value="ar">🇸🇦 عربي</option>
+      <option value="en">🇺🇸 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="tr">🇹🇷 Türkçe</option>
+    </select>
+    <button class="btn btn-secondary btn-sm" onclick="searchSubs()">🔍 بحث</button>
+  </div>
+  <div id="sStatus" class="status"></div>
+  <div id="subList" class="sub-list"></div>
+  <div class="upload-row">
+    <span style="font-size:12px;color:var(--muted)">أو ارفع SRT:</span>
+    <input type="file" id="subFile" accept=".srt,.vtt" style="display:none" onchange="loadLocal(this)">
+    <div class="upload-btn" onclick="document.getElementById('subFile').click()">📁 رفع SRT/VTT</div>
+    <span id="localMsg" style="font-size:12px;color:var(--muted)"></span>
+  </div>
+</div>
+
+</main>
+<script>
+// ---- Helpers ----
+function log(msg){ const d=document.getElementById('debugBox'); d.classList.add('show'); d.innerHTML+=msg+'<br>'; d.scrollTop=d.scrollHeight; }
+function st(id,cls,msg){ const e=document.getElementById(id); e.className=`status ${cls} show`; e.innerHTML=cls==='loading'?`<div class="spinner"></div><span>${msg}</span>`:`<span>${msg}</span>`; }
+function clr(id){ document.getElementById(id).className='status'; }
+
+// –– API Key ––
+window.onload=()=>{ const k=localStorage.getItem(‘osk’); if(k) document.getElementById(‘apiKey’).value=k; };
+function saveKey(){ const k=document.getElementById(‘apiKey’).value.trim(); if(!k)return; localStorage.setItem(‘osk’,k); const m=document.getElementById(‘savedMsg’); m.style.display=‘inline’; setTimeout(()=>m.style.display=‘none’,2000); }
+function getKey(){ return localStorage.getItem(‘osk’)||document.getElementById(‘apiKey’).value.trim(); }
+
+// –– PLAY ––
+function play(){
+const code = document.getElementById(‘code’).value.trim();
+if(!code){ st(‘eStatus’,‘error’,‘⚠️ الصق كود Webtor أولاً’); return; }
+
+// Extract magnet
+const mm = code.match(/src=[”’](magnet:[^"']+)[”’]/);
+const pm = code.match(/data-path=[”’]([^"']+)[”’]/);
+
+if(!mm){ st(‘eStatus’,‘error’,‘❌ ما وجدت magnet link في الكود’); return; }
+
+const magnet = mm[1];
+const dataPath = pm ? pm[1] : ‘’;
+
+log(‘magnet found: ‘+magnet.substring(0,60)+’…’);
+log(’data-path: ’+dataPath);
+
+// Auto-fill subtitle search
+if(dataPath){
+const nm = dataPath.match(//([^/]+).(mkv|mp4|avi|webm)$/i);
+if(nm){
+let t = nm[1].replace(/(.*?)/g,’’).replace(/[.*?]/g,’’).replace(/S\d+E\d+.*/i,’’).replace(/[._-]+/g,’ ’).trim();
+document.getElementById(‘subQ’).value = t;
+log(’movie title: ’+t);
+}
+}
+
+st(‘eStatus’,‘loading’,‘جاري تشغيل الفيديو عبر Webtor…’);
+document.getElementById(‘playBtn’).disabled = true;
+
+// Build self-contained HTML page for iframe
+const html = `<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  video{width:100%;max-height:100vh;display:block;}
+</style>
+</head>
+<body>
+<video controls src="${magnet.replace(/"/g,'&quot;')}" ${dataPath?`data-path="${dataPath.replace(/"/g,'&quot;')}"`:''} style="width:100%;background:#000;"></video>
+<script src="https://cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js" charset="utf-8"><\/script>
+</body>
+</html>`;
+
+const blob = new Blob([html], {type:‘text/html’});
+const url = URL.createObjectURL(blob);
+
+const frame = document.getElementById(‘playerFrame’);
+frame.src = url;
+
+frame.onload = () => {
+log(‘iframe loaded’);
+document.getElementById(‘loadingOverlay’).classList.remove(‘show’);
+clr(‘eStatus’);
+st(‘eStatus’,‘success’,‘✓ تم تحميل المشغّل — Webtor يعمل الآن’);
+document.getElementById(‘playBtn’).disabled = false;
+};
+
+frame.onerror = () => {
+log(‘iframe error’);
+st(‘eStatus’,‘error’,‘❌ خطأ في تحميل المشغّل’);
+document.getElementById(‘playBtn’).disabled = false;
+};
+
+document.getElementById(‘playerBox’).classList.add(‘show’);
+document.getElementById(‘subCard’).classList.add(‘show’);
+document.getElementById(‘playerBox’).scrollIntoView({behavior:‘smooth’,block:‘start’});
+
+// Timeout fallback
+setTimeout(()=>{
+document.getElementById(‘loadingOverlay’).classList.remove(‘show’);
+log(‘timeout — removed loading overlay’);
+}, 8000);
+}
+
+// –– Subtitles ––
+async function searchSubs(){
+const q=document.getElementById(‘subQ’).value.trim(), lang=document.getElementById(‘langSel’).value, key=getKey();
+if(!q){ st(‘sStatus’,‘error’,‘⚠️ أدخل اسم الفيلم’); return; }
+st(‘sStatus’,‘loading’,`🔍 جاري البحث عن "${q}"...`);
+document.getElementById(‘subList’).innerHTML=’’;
+try{
+const h={‘Content-Type’:‘application/json’,‘User-Agent’:‘CinePlay/3’};
+if(key) h[‘Api-Key’]=key;
+const r=await fetch(`https://api.opensubtitles.com/api/v1/subtitles?query=${encodeURIComponent(q)}&languages=${lang}&per_page=15`,{headers:h});
+if(r.status===401||r.status===403){ st(‘sStatus’,‘error’,‘❌ تحتاج API Key من opensubtitles.com (مجاني)’); showLinks(q,lang); return; }
+const d=await r.json();
+if(!d.data?.length){ st(‘sStatus’,‘error’,‘❌ لا توجد ترجمة — جرب اسماً آخر’); showLinks(q,lang); return; }
+clr(‘sStatus’);
+renderSubs(d.data);
+}catch(e){ st(‘sStatus’,‘error’,‘❌ خطأ في الاتصال’); showLinks(q,lang); }
+}
+
+function showLinks(q,lang){
+document.getElementById(‘subList’).innerHTML=`
+
+  <div style="text-align:center;padding:16px;color:var(--muted)">
+    <p style="margin-bottom:10px">🔗 حمّل يدوياً ثم ارفع SRT:</p>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+      <a href="https://www.opensubtitles.org/ar/search/sublanguageid-${lang}/moviename-${encodeURIComponent(q)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none">OpenSubtitles</a>
+      <a href="https://subdl.com/search?q=${encodeURIComponent(q)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none">Subdl</a>
+      <a href="https://subscene.com/subtitles/searchbytitle?query=${encodeURIComponent(q)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none">Subscene</a>
+    </div>
+  </div>`;
+}
+
+function renderSubs(subs){
+const c=document.getElementById(‘subList’); c.innerHTML=’’;
+subs.forEach(s=>{
+const a=s.attributes,f=a.files||[];
+if(!f.length)return;
+const d=document.createElement(‘div’); d.className=‘sub-item’;
+d.innerHTML=`<div style="flex:1"><div class="sname">${a.release||a.feature_details?.title||'ترجمة'}</div><div class="smeta">⬇ ${a.download_count||0} · ${f[0]?.file_name||''}</div></div><button class="btn btn-secondary btn-sm" onclick="dlSub(${f[0]?.file_id},this)">⬇ تشغيل</button>`;
+c.appendChild(d);
+});
+}
+
+async function dlSub(id,btn){
+const key=getKey();
+if(!key){ st(‘sStatus’,‘error’,‘❌ أضف API Key أولاً’); return; }
+btn.textContent=‘⏳’; btn.disabled=true;
+try{
+const r=await fetch(‘https://api.opensubtitles.com/api/v1/download’,{method:‘POST’,headers:{‘Content-Type’:‘application/json’,‘Api-Key’:key,‘User-Agent’:‘CinePlay/3’},body:JSON.stringify({file_id:id})});
+const d=await r.json();
+if(!d.link) throw new Error();
+const rt=await fetch(d.link);
+const text=await rt.text();
+sendSubToFrame(text);
+btn.closest(’.sub-item’).classList.add(‘done’);
+btn.textContent=‘✓ مُحمَّل’;
+st(‘sStatus’,‘success’,‘✓ الترجمة جاهزة في المشغّل!’);
+}catch{ btn.textContent=‘❌ فشل’; btn.disabled=false; }
+}
+
+function loadLocal(input){
+const f=input.files[0]; if(!f)return;
+const r=new FileReader();
+r.onload=e=>{ sendSubToFrame(e.target.result); document.getElementById(‘localMsg’).textContent=`✓ ${f.name}`; document.getElementById(‘localMsg’).style.color=‘var(–success)’; st(‘sStatus’,‘success’,‘✓ الترجمة جاهزة!’); };
+r.readAsText(f,‘UTF-8’);
+}
+
+function sendSubToFrame(srtText){
+// Parse SRT and inject as track into iframe
+const frame=document.getElementById(‘playerFrame’);
+try{
+frame.contentWindow.postMessage({type:‘LOAD_SUB’,srt:srtText},’*’);
+log(‘subtitle sent to iframe via postMessage’);
+}catch(e){ log(’postMessage failed: ’+e.message); }
+}
+
+document.getElementById(‘subQ’).addEventListener(‘keydown’,e=>{ if(e.key===‘Enter’)searchSubs(); });
+</script>
+
+</body>
+</html>
